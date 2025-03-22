@@ -174,7 +174,7 @@ function playdate.update()
     GLOBAL_ANGLE += 1
     GLOBAL_HEIGHT += 1
     if GLOBAL_ANGLE == 360 then GLOBAL_ANGLE = 0 end
-    if GLOBAL_HEIGHT == 360 then GLOBAL_HEIGHT = 0 end
+    if GLOBAL_HEIGHT == 300 then GLOBAL_HEIGHT = 0 end
 
     -- Draw text
     -- gfx.drawTextAligned("Template configured!", 200, 30, kTextAlignment.center)

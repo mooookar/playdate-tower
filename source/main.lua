@@ -12,11 +12,21 @@ import "CoreLibs/ui"
 local pd <const> = playdate
 local gfx <const> = playdate.graphics
 
+local CENTER = 200
+local GLOBAL_ANGLE = 0
+
 -- Defining player variables
 local playerSize = 10
 local halfPlayerSize = playerSize/2
 local playerVelocity = 1
 local playerX, playerY = 200, 120
+
+-- Defining platform size
+local platformWidth = 24
+local halfPlatformWidth = platformWidth/2
+local platformHeight = 10
+
+local sin, cos, pi, rad  = math.sin, math.cos, math.pi, math.rad
 
 -- Drawing player image
 local playerImage = gfx.image.new(playerSize, playerSize)
@@ -42,12 +52,58 @@ gfx.pushContext(playerImage)
     gfx.drawCircleAtPoint(halfPlayerSize,halfPlayerSize,halfPlayerSize)
 gfx.popContext()
 
+-- Drawing platform image
+local platformFrontImage = gfx.image.new(platformWidth, platformWidth)
+gfx.pushContext(platformFrontImage)
+    gfx.setColor(gfx.kColorBlack)
+    gfx.fillRoundRect(0, 0, platformWidth, platformHeight, 1)
+gfx.popContext()
+
+local platformBackImage = gfx.image.new(platformWidth, platformWidth)
+gfx.pushContext(platformBackImage)
+    gfx.setColor(gfx.kColorBlack)
+    gfx.drawRoundRect(0, 0, platformWidth, platformHeight, 1)
+gfx.popContext()
+
+local platformsArray = {
+   {1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1},
+   {1,1,1,1,1,1,1,1,1,1,1,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,1,1,1},
+}
+
+
 -- Defining helper function
 local function ring(value, min, max)
 	if (min > max) then
 		min, max = max, min
 	end
 	return min + (value - min) % (max - min)
+end
+
+local function isFront(value)
+    return cos(rad(value * 12 + GLOBAL_ANGLE )) > 0
+end
+
+local function indexOf(array, value)
+    for i, v in ipairs(array) do
+        if v == value then
+            return i
+        end
+    end
+    return nil
 end
 
 -- playdate.update function is required in every project!
@@ -59,18 +115,38 @@ function playdate.update()
         pd.ui.crankIndicator:draw()
     else
         -- Calculate velocity from crank angle 
-        local crankPosition = pd.getCrankPosition() - 90
-        local xVelocity = math.cos(math.rad(crankPosition)) * playerVelocity
-        local yVelocity = math.sin(math.rad(crankPosition)) * playerVelocity
+        local crankPosition = pd.getCrankPosition()
+        local xVelocity = math.cos(rad(crankPosition)) * playerVelocity
+        -- local yVelocity = math.sin(rad(crankPosition)) * playerVelocity
         -- Move player
-        playerX += xVelocity
-        playerY += yVelocity
+        GLOBAL_ANGLE += xVelocity
+        -- playerY += yVelocity
         -- Loop player position
-        playerX = ring(playerX, -playerSize, 400 + playerSize)
-        playerY = ring(playerY, -playerSize, 240 + playerSize)
+        -- playerX = ring(playerX, -playerSize, 400 + playerSize)
+        -- playerY = ring(playerY, -playerSize, 240 + playerSize)
     end
+    GLOBAL_ANGLE += 1
+    if GLOBAL_ANGLE == 360 then GLOBAL_ANGLE = 0 end
+
     -- Draw text
     -- gfx.drawTextAligned("Template configured!", 200, 30, kTextAlignment.center)
     -- Draw player
     playerImage:drawAnchored(playerX, playerY, 0.5, 0.5)
+    
+    for i, row in ipairs(platformsArray) do
+        for ii, platform in ipairs(row) do 
+            if (platform == 1 ) then 
+                local xPos = CENTER + (sin(rad(ii * 12 + GLOBAL_ANGLE )) * 100)
+                local front = isFront(ii)
+                
+                if( front ) then
+                    platformBackImage:drawAnchored(xPos , 250 - i * 10, 0.5, 0.5)
+                else
+                    platformFrontImage:drawAnchored(xPos , 250 - i * 10, 0.5, 0.5)
+                end
+            end
+        end    
+    end
+
+
 end
